@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>耶穌的一生 - 互動撲克牌故事</title>
+    <!-- Tailwind CSS 載入 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Noto Serif TC', 'Inter', serif;
+            background: radial-gradient(circle at center, #2c1b18 0%, #120a08 100%);
+            color: #fce7f3;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* 標題樣式 */
+        .main-title {
+            font-size: 2.5rem;
+            text-shadow: 0 0 15px rgba(234, 179, 8, 0.4), 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* 文字框字體大小為標題 0.6 倍: 2.5rem * 0.6 = 1.5rem */
+        .story-text-box {
+            font-size: 1.5rem;
+            line-height: 1.4;
+        }
+
+        /* 終局祝福標語: 標題 1.2 倍 => 3.0rem */
+        .blessing-text {
+            font-size: 3rem;
+            text-shadow: 0 0 25px rgba(251, 191, 36, 0.8), 0 0 50px rgba(245, 158, 11, 0.5);
+            animation: pulse-glow 3s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0% { opacity: 0.85; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1.02); }
+        }
+
+        /* 撲克牌容器與 3D 翻轉效果 */
+        .card-perspective {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+        }
+
+        /* 撲克牌正面 */
+        .card-front {
+            background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+            color: #dc2626; /* 紅心為紅色 */
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0.35rem;
+        }
+
+        /* 撲克牌背面 - 精緻十字架典雅紋理 */
+        .card-back {
+            background: linear-gradient(135deg, #991b1b 0%, #450a0a 100%);
+            border: 2px solid #fbbf24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-back-pattern {
+            width: 84%;
+            height: 90%;
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0,0,0,0.1),
+                rgba(0,0,0,0.1) 10px,
+                rgba(251, 191, 36, 0.05) 10px,
+                rgba(251, 191, 36, 0.05) 20px
+            );
+        }
+
+        /* 中央放大字體：牌寬度的 2/3 (牌寬約 100px -> 66px 左右) */
+        .card-center-val {
+            font-size: 4.2rem;
+            line-height: 1;
+            font-weight: 900;
+            font-family: 'Inter', sans-serif;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+        }
+
+        /* 卡牌平滑過渡 */
+        .card-smooth {
+            transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                        top 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                        transform 0.4s ease, 
+                        opacity 0.4s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center p-4 relative pb-28">
+
+    <!-- 頂部標題區 -->
+    <header class="w-full text-center mt-2 z-10">
+        <h1 class="main-title font-bold text-amber-400 tracking-wider">耶穌的一生</h1>
+        <p id="stage-indicator" class="text-xs text-amber-200/60 mt-1">點擊下方按鈕開始探索耶穌的故事</p>
+    </header>
+
+    <!-- 中央區域：撲克牌展示區域 (雙列) -->
+    <main class="w-full max-w-6xl flex-1 flex flex-col justify-center items-center relative my-4 min-h-[420px]">
+        
+        <!-- 上列卡牌容器 (手牌列) -->
+        <div id="top-row-container" class="relative w-full h-[160px] flex justify-center items-center">
+            <!-- 終局文字預留區域 (當上列沒牌時顯示) -->
+            <div id="blessing-message" class="hidden absolute inset-0 flex items-center justify-center text-center z-0 px-4">
+                <span class="blessing-text font-black text-amber-300 tracking-widest">
+                    跟隨耶穌的腳步，使你的人生順起來
+                </span>
+            </div>
+            <!-- 卡牌層動態繪製於此 -->
+            <div id="top-cards-layer" class="absolute inset-0"></div>
+        </div>
+
+        <!-- 下列卡牌容器 (抽出的目標牌列) -->
+        <div id="bottom-row-container" class="relative w-full h-[160px] flex justify-center items-center mt-12">
+            <div id="bottom-cards-layer" class="absolute inset-0"></div>
+        </div>
+
+    </main>
+
+    <!-- 畫面右下角控制區域 (文字框占寬度 3/4 + 按鈕同一列) -->
+    <footer class="fixed bottom-4 left-0 right-0 px-4 w-full flex justify-center z-50">
+        <div class="w-full max-w-5xl flex items-center justify-between gap-3 bg-stone-900/90 backdrop-blur-md p-3 rounded-2xl border border-amber-500/30 shadow-2xl">
+            
+            <!-- 文字框：寬度佔螢幕 3/4 (75vw) 的比例空間，文字大小為標題的 0.4 倍 -->
+            <div class="w-[75vw] md:w-[75%] bg-stone-950/80 border border-amber-600/40 rounded-xl px-4 py-3 text-amber-100 flex items-center shadow-inner min-h-[56px]">
+                <p id="story-text" class="story-text-box font-medium tracking-wide leading-relaxed text-amber-200">
+                    請點擊「開始」按鈕，展開故事...
+                </p>
+            </div>
+
+            <!-- 右下角控制按鈕 -->
+            <button id="next-btn" onclick="handleNextStep()" class="flex-1 min-w-[90px] h-[56px] bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 active:scale-95 text-stone-950 font-bold text-lg rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-1 border border-amber-300">
+                <span id="btn-label">開始</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </button>
+
+        </div>
+    </footer>
+
+    <!-- JavaScript 邏輯腳本 -->
+    <script>
+        /**
+         * 撲克牌規格定義：
+         * 牌寬: 100px, 牌高: 140px
+         * 壓牌比例 2/5 (40% 重疊)，即後一張距離前一張為 60px
+         * 移位 1/5 牌寬 = 20px
+         * 上移 2/10 牌高 = 28px
+         */
+        const CARD_WIDTH = 100;
+        const CARD_HEIGHT = 140;
+        const OVERLAP_OFFSET = 60; // 60% 偏移 (2/5 重疊)
+
+        // 第一階段的故事資料庫 (13張牌登場)
+        const PHASE_1_DATA = [
+            { val: '8', text: '(1/13) 耶穌出生後第8天受割禮' },
+            { val: 'Q', text: '(2/13) 祂揀選12(Q)門徒一起傳福音' },
+            { val: '6', text: '(3/13) 耶穌第一個神蹟就是把6口石缸的水變酒' },
+            { val: '3', text: '(4/13) 祂說過拆毀聖殿3日內要再建立起來' },
+            { val: '7', text: '(5/13) 祂趕過抹大拉馬利亞身上7個鬼' },
+            { val: '4', text: '(6/13) 還有癱子的4個朋友將他垂降在耶穌面前而得醫治' },
+            { val: '10', text: '(7/13) 用10個童女點燈的故事要我們警醒等候' },
+            { val: '5', text: '(8/13) 最有名的5餅2魚餵飽五千人' },
+            { val: '2', text: '(9/13) 最有名的5餅2魚餵飽五千人' },
+            { val: 'A', text: '(10/13) 祂愛我們即使失去1隻羊' },
+            { val: '9', text: '(11/13) 也要放下其他99隻也要把它尋回' },
+            { val: 'K', text: '(12/13) 最後晚餐時和十二個門徒總共13(K)人' },
+            { val: 'J', text: '(13/13) 耶穌被抓後猶大後悔賣耶穌上吊死了，剩下11(J)個門徒' }
+        ];
+
+        // 第三階段 13 個小節的故事與規則設定
+        // Target: 右數第 N 張 (從右向左數: 1-indexed)
+        const PHASE_3_CONFIG = [
+            { step: 1, text: "最後耶穌被釘死在10字架上", targetFromRight: 10, shiftCount: 9, cutRight: 9 },
+            { step: 2, text: "死前祂想念12個門徒", targetFromRight: 12, shiftCount: 11, cutRight: 0 },
+            { step: 3, text: "復活那天是7日的第一日", targetFromRight: 7, shiftCount: 6, cutRight: 6 },
+            { step: 4, text: "抹大拉馬利亞見墳墓的石頭被挪開，就跑去見彼得和約翰2人", targetFromRight: 2, shiftCount: 1, cutRight: 1 },
+            { step: 5, text: "後來馬利亞往墳墓裡看，看見有2個天使在安放耶穌身體的地方坐著", targetFromRight: 2, shiftCount: 1, cutRight: 1 },
+            { step: 6, text: "這復活讓我們想到神在第6天創造人", targetFromRight: 6, shiftCount: 5, cutRight: 5 },
+            { step: 7, text: "往人的鼻孔吹了1口氣就使人得生命", targetFromRight: 1, shiftCount: 0, cutRight: 0 },
+            { step: 8, text: "耶穌升天後的5旬節那天門徒被聖靈充滿", targetFromRight: 5, shiftCount: 4, cutRight: 4 },
+            { step: 9, text: "彼得講道共有3000人受洗", targetFromRight: 3, shiftCount: 2, cutRight: 2 },
+            { step: 10, text: "4福音書中記載耶穌生平事蹟", targetFromRight: 4, shiftCount: 3, cutRight: 0 },
+            { step: 11, text: "神的話也記在舊約和新約2約中", targetFromRight: 2, shiftCount: 1, cutRight: 1 },
+            { step: 12, text: "而且1字1句都不可廢去。", targetFromRight: 1, shiftCount: 0, cutRight: 1 },
+            { step: 13, text: "而且1字1句都不可廢去。", targetFromRight: 1, shiftCount: 0, cutRight: 0 }
+        ];
+
+        // 應用程式狀態變數
+        let currentPhase = 1;      // 1, 2, 3
+        let phase1Index = 0;       // 第一階段點擊次數 (0..12)
+        let phase3StepIndex = 0;   // 第三階段小節索引 (0..12)
+        let phase3SubStep = 1;     // 小節內子步驟 (1: 顯示文字與標註, 2: 移位與翻牌, 3: 抽出與重排)
+        let isAnimating = false;   // 動畫執行中鎖定
+
+        // 牌組資料陣列
+        // topCards: 存放上列撲克牌物件 { id, val, faceUp, tempShiftX, tempShiftY }
+        // bottomCards: 存放下列抽出牌物件
+        let topCards = [];
+        let bottomCards = [];
+
+        // DOM 元素引用
+        const topLayer = document.getElementById('top-cards-layer');
+        const bottomLayer = document.getElementById('bottom-cards-layer');
+        const storyTextEl = document.getElementById('story-text');
+        const btnLabelEl = document.getElementById('btn-label');
+        const stageIndicatorEl = document.getElementById('stage-indicator');
+        const blessingMessageEl = document.getElementById('blessing-message');
+
+        /**
+         * 建立 HTML 撲克牌 DOM 結構
+         */
+        function createCardDOM(card) {
+            const cardEl = document.createElement('div');
+            cardEl.id = `card-${card.id}`;
+            cardEl.className = `card card-perspective card-smooth absolute ${card.faceUp ? 'flipped' : ''}`;
+            cardEl.style.width = `${CARD_WIDTH}px`;
+            cardEl.style.height = `${CARD_HEIGHT}px`;
+
+            cardEl.innerHTML = `
+                <div class="card-inner">
+                    <!-- 背面 -->
+                    <div class="card-back">
+                        <div class="card-back-pattern">
+                            <span class="text-amber-400 text-2xl font-bold">✝</span>
+                        </div>
+                    </div>
+                    <!-- 正面 -->
+                    <div class="card-front">
+                        <div class="flex justify-between items-center leading-none">
+                            <span class="text-base font-bold pl-0.5">${card.val}</span>
+                            <span class="text-sm">♥</span>
+                        </div>
+                        <div class="flex flex-col items-center justify-center my-auto">
+                            <span class="card-center-val">${card.val}</span>
+                            <span class="text-xl -mt-1">♥</span>
+                        </div>
+                        <div class="flex justify-between items-center leading-none rotate-180">
+                            <span class="text-base font-bold pl-0.5">${card.val}</span>
+                            <span class="text-sm">♥</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return cardEl;
+        }
+
+        /**
+         * 重新繪製並定位所有上列與下列的撲克牌
+         */
+        function renderCards() {
+            // 1. 渲染上列 (Top Row)
+            const topContainerWidth = topLayer.clientWidth;
+            const topCount = topCards.length;
+            
+            if (topCount === 0 && currentPhase === 3 && phase3StepIndex === 12 && phase3SubStep === 3) {
+                blessingMessageEl.classList.remove('hidden');
+            } else {
+                blessingMessageEl.classList.add('hidden');
+            }
+
+            // 計算上列置中起點
+            const topTotalWidth = topCount > 0 ? CARD_WIDTH + (topCount - 1) * OVERLAP_OFFSET : 0;
+            const topStartX = (topContainerWidth - topTotalWidth) / 2;
+
+            topCards.forEach((card, idx) => {
+                let cardEl = document.getElementById(`card-${card.id}`);
+                if (!cardEl) {
+                    cardEl = createCardDOM(card);
+                    topLayer.appendChild(cardEl);
+                }
+
+                // 計算基礎位置 + 動畫偏移
+                const baseX = topStartX + idx * OVERLAP_OFFSET;
+                const finalX = baseX + (card.tempShiftX || 0);
+                const finalY = (card.tempShiftY || 0);
+
+                cardEl.style.left = `${finalX}px`;
+                cardEl.style.top = `${finalY}px`;
+                cardEl.style.zIndex = idx + 1;
+
+                // 控制翻牌狀態
+                if (card.faceUp) {
+                    cardEl.classList.add('flipped');
+                } else {
+                    cardEl.classList.remove('flipped');
+                }
+            });
+
+            // 2. 渲染下列 (Bottom Row)
+            const bottomContainerWidth = bottomLayer.clientWidth;
+            const bottomCount = bottomCards.length;
+            const bottomTotalWidth = bottomCount > 0 ? CARD_WIDTH + (bottomCount - 1) * OVERLAP_OFFSET : 0;
+            const bottomStartX = (bottomContainerWidth - bottomTotalWidth) / 2;
+
+            bottomCards.forEach((card, idx) => {
+                let cardEl = document.getElementById(`card-${card.id}`);
+                // 如果該元素原本在上層，搬移至下層 DOM
+                if (cardEl && cardEl.parentElement !== bottomLayer) {
+                    bottomLayer.appendChild(cardEl);
+                }
+
+                const finalX = bottomStartX + idx * OVERLAP_OFFSET;
+                cardEl.style.left = `${finalX}px`;
+                cardEl.style.top = `0px`;
+                cardEl.style.zIndex = idx + 1;
+
+                if (card.faceUp) {
+                    cardEl.classList.add('flipped');
+                }
+            });
+        }
+
+        /**
+         * 延遲輔助函式 (用於連續位移動畫)
+         */
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        /**
+         * 核心狀態機控制函式
+         */
+        async function handleNextStep() {
+            if (isAnimating) return;
+
+            // 當遊戲結束點擊「完成」時，觸發重新開始
+            if (currentPhase === 3 && phase3StepIndex >= 13 && phase3SubStep === 1) {
+                resetGame();
+                return;
+            }
+
+            if (currentPhase === 1) {
+                handlePhase1();
+            } else if (currentPhase === 2) {
+                handlePhase2();
+            } else if (currentPhase === 3) {
+                await handlePhase3();
+            }
+        }
+
+        /**
+         * 重置遊戲至初始狀態
+         */
+        function resetGame() {
+            currentPhase = 1;
+            phase1Index = 0;
+            phase3StepIndex = 0;
+            phase3SubStep = 1;
+            isAnimating = false;
+
+            topCards = [];
+            bottomCards = [];
+
+            topLayer.innerHTML = '';
+            bottomLayer.innerHTML = '';
+
+            storyTextEl.innerText = "請點擊「開始」按鈕，展開故事...";
+            btnLabelEl.innerText = "開始";
+            stageIndicatorEl.innerText = "點擊下方按鈕開始探索耶穌的故事";
+            blessingMessageEl.classList.add('hidden');
+
+            renderCards();
+        }
+
+        /**
+         * 第一階段：逐張出現與講故事
+         */
+        function handlePhase1() {
+            if (phase1Index < 13) {
+                const data = PHASE_1_DATA[phase1Index];
+                topCards.push({
+                    id: `p1-${phase1Index}`,
+                    val: data.val,
+                    faceUp: true,
+                    tempShiftX: 0,
+                    tempShiftY: 0
+                });
+
+                storyTextEl.innerText = data.text;
+                renderCards();
+
+                phase1Index++;
+                btnLabelEl.innerText = phase1Index === 13 ? "洗牌翻面" : "下一步";
+                stageIndicatorEl.innerText = `第一階段：故事初覽 (${phase1Index}/13)`;
+
+                if (phase1Index === 13) {
+                    currentPhase = 2;
+                }
+            }
+        }
+
+        /**
+         * 第二階段：洗牌 / 蓋牌轉背面，並按指定順序重新攤開
+         */
+        function handlePhase2() {
+            isAnimating = true;
+            btnLabelEl.innerText = "進行中...";
+            stageIndicatorEl.innerText = "第二階段：蓋牌洗牌中...";
+
+            // 1. 蓋牌
+            topCards.forEach(c => c.faceUp = false);
+            renderCards();
+
+            // 2. 轉為題目指定從右到左順序: 8, Q, 6, 3, 7, 4, 10, 5, 2, A, 9, K, J
+            // 換言之，由左至右 (索引 0 -> 12) 為: J, K, 9, A, 2, 5, 10, 4, 7, 3, 6, Q, 8
+            const orderedValues = ['J', 'K', '9', 'A', '2', '5', '10', '4', '7', '3', '6', 'Q', '8'];
+
+            setTimeout(() => {
+                topCards = orderedValues.map((val, idx) => ({
+                    id: `p2-${idx}-${val}`,
+                    val: val,
+                    faceUp: false,
+                    tempShiftX: 0,
+                    tempShiftY: 0
+                }));
+
+                // 清空頂層舊 DOM 重新渲染
+                topLayer.innerHTML = '';
+                renderCards();
+
+                storyTextEl.innerText = "撲克牌已蓋牌並洗牌重新排列！準備開始故事解密。";
+                btnLabelEl.innerText = "開始解密";
+                stageIndicatorEl.innerText = "第三階段：抽取牌與故事解密 (0/13)";
+                
+                currentPhase = 3;
+                phase3StepIndex = 0;
+                phase3SubStep = 1;
+                isAnimating = false;
+            }, 600);
+        }
+
+        /**
+         * 第三階段：故事解密 (共13小節)
+         */
+        async function handlePhase3() {
+            if (phase3StepIndex >= 13) return;
+
+            const config = PHASE_3_CONFIG[phase3StepIndex];
+            const totalTop = topCards.length;
+
+            // --- 子步驟 1：顯示文字與確定目標 ---
+            if (phase3SubStep === 1) {
+                storyTextEl.innerText = `${config.text}`;
+                stageIndicatorEl.innerText = `第三階段：小節 ${config.step}/13 (準備選牌)`;
+                phase3SubStep = 2;
+                btnLabelEl.innerText = "開牌位移";
+                return;
+            }
+
+            // --- 子步驟 2：從右向左數特定張數移位 (0.5s時間差) + 目標牌翻開上移 ---
+            if (phase3SubStep === 2) {
+                isAnimating = true;
+                btnLabelEl.innerText = "移動中...";
+
+                // 計算目標牌索引 (從右邊數第 targetFromRight 張)
+                // 索引 idx = totalTop - targetFromRight
+                const targetIdx = totalTop - config.targetFromRight;
+
+                // 1. 從第1張到第N張依次往右移動 1/5 牌寬 (20px)，時間差 0.5 秒
+                // 右數第 1 張對應 topCards[totalTop - 1]
+                const shiftPx = CARD_WIDTH * 0.2; // 20px
+
+                for (let k = 0; k < config.shiftCount; k++) {
+                    const cardIndexToShift = (totalTop - 1) - k;
+                    if (cardIndexToShift >= 0 && cardIndexToShift < totalTop) {
+                        topCards[cardIndexToShift].tempShiftX = shiftPx;
+                        renderCards();
+                        await sleep(500); // 0.5秒時間差
+                    }
+                }
+
+                // 2. 目標牌翻開，往上移動 2/10 牌高 (28px)
+                if (targetIdx >= 0 && targetIdx < totalTop) {
+                    topCards[targetIdx].faceUp = true;
+                    topCards[targetIdx].tempShiftY = -(CARD_HEIGHT * 0.2); // -28px
+                    renderCards();
+                }
+
+                phase3SubStep = 3;
+                btnLabelEl.innerText = "抽出置下";
+                stageIndicatorEl.innerText = `第三階段：小節 ${config.step}/13 (牌已翻開)`;
+                isAnimating = false;
+                return;
+            }
+
+            // --- 子步驟 3：抽出來放下一列 + 切牌 (將右邊張數移到最左邊底下) + 重新置中 ---
+            if (phase3SubStep === 3) {
+                isAnimating = true;
+                btnLabelEl.innerText = "處理中...";
+
+                const targetIdx = totalTop - config.targetFromRight;
+
+                // 1. 抽出目標牌放入下列 (bottomCards)
+                const [extractedCard] = topCards.splice(targetIdx, 1);
+                extractedCard.tempShiftX = 0;
+                extractedCard.tempShiftY = 0;
+                bottomCards.push(extractedCard);
+
+                // 復原剩餘牌的臨時位移
+                topCards.forEach(c => {
+                    c.tempShiftX = 0;
+                    c.tempShiftY = 0;
+                });
+
+                // 2. 執行切牌 (若有規定 cutRight)
+                // 其餘牌右邊 N 張放到撲克牌最左邊那一張底下
+                if (config.cutRight > 0 && topCards.length >= config.cutRight) {
+                    const cutSlice = topCards.splice(topCards.length - config.cutRight, config.cutRight);
+                    topCards.unshift(...cutSlice);
+                }
+
+                // 重新置中繪製
+                renderCards();
+
+                // 進入下一個小節或結束
+                phase3StepIndex++;
+                phase3SubStep = 1;
+
+                if (phase3StepIndex < 13) {
+                    btnLabelEl.innerText = "下一步";
+                    stageIndicatorEl.innerText = `第三階段：小節 ${phase3StepIndex}/13 完成`;
+                } else {
+                    btnLabelEl.innerText = "完成";
+                    stageIndicatorEl.innerText = "全劇終 - 耶穌的一生（點擊「完成」可重新開始）";
+                }
+
+                isAnimating = false;
+            }
+        }
+
+        // 視窗大小改變時重新計算置中排版
+        window.addEventListener('resize', () => {
+            renderCards();
+        });
+
+        // 頁面初次載入完成初始化繪製
+        window.onload = () => {
+            renderCards();
+        };
+    </script>
+</body>
+</html>
